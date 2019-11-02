@@ -28,3 +28,7 @@ upgrades:
       - setConfig:
           name: conf.keyCaptureField
           value: /kafkaMessageKey
+      - setConfig:
+          name: conf.timestampsEnabled
+          value: false
+

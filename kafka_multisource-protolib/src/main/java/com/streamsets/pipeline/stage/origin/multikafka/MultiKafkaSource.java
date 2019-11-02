@@ -140,7 +140,9 @@ public class MultiKafkaSource extends BasePushSource {
                 item.partition(),
                 item.offset(),
                 item.value(),
-                item.key()
+                item.key(),
+                item.timestamp(),
+                item.timestampType().name()
             ));
 
             if (records.size() >= conf.maxBatchSize) {
@@ -206,7 +208,9 @@ public class MultiKafkaSource extends BasePushSource {
         int partition,
         long offset,
         byte[] payload,
-        Object messageKey
+        Object messageKey,
+        long timestamp,
+        String timestampType
     ) throws StageException {
       Utils.checkNotNull(parserFactory, "Initialization failed");
 
@@ -220,6 +224,14 @@ public class MultiKafkaSource extends BasePushSource {
           record.getHeader().setAttribute(HeaderAttributeConstants.TOPIC, topic);
           record.getHeader().setAttribute(HeaderAttributeConstants.PARTITION, String.valueOf(partition));
           record.getHeader().setAttribute(HeaderAttributeConstants.OFFSET, String.valueOf(offset));
+          if (conf.timestampsEnabled) {
+            record
+                .getHeader()
+                .setAttribute(HeaderAttributeConstants.KAFKA_TIMESTAMP, String.valueOf(timestamp));
+            record
+                .getHeader()
+                .setAttribute(HeaderAttributeConstants.KAFKA_TIMESTAMP_TYPE, timestampType);
+          }
 
           try {
             MessageKeyUtil.handleMessageKey(messageKey,
