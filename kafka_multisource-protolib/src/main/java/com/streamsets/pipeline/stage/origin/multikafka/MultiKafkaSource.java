@@ -147,8 +147,11 @@ public class MultiKafkaSource extends BasePushSource {
       BatchContext batchContext = getContext().startBatch();
       ErrorRecordHandler errorRecordHandler = new DefaultErrorRecordHandler(getContext(), batchContext);
       for (ConsumerRecord<String, byte[]> mm : list) {
-        createRecord(errorRecordHandler, mm.topic(), mm.partition(), mm.offset(), mm.value()).forEach(
-            batchContext.getBatchMaker()::addRecord);
+        createRecord(errorRecordHandler, mm.topic(), mm.partition(),
+            mm.offset(), mm.value(), mm.timestampType().name, mm.timestamp()).
+            forEach(record -> batchContext.getBatchMaker().addRecord(record));
+//        createRecord(errorRecordHandler, mm.topic(), mm.partition(), mm.offset(), mm.value()).forEach(
+//            batchContext.getBatchMaker()::addRecord, mm.timestampType().name, mm.timestamp());
       }
       LOG.debug("Multi Kafka sendBatch {}", list.size());
       getContext().processBatch(batchContext);
@@ -159,7 +162,9 @@ public class MultiKafkaSource extends BasePushSource {
       String topic,
       int partition,
       long offset,
-      byte[] payload
+      byte[] payload,
+      String timestampType,
+      long timestamp
     ) throws StageException {
       String messageId = getMessageId(topic, partition, offset);
       List<Record> records = new ArrayList<>();
@@ -169,6 +174,8 @@ public class MultiKafkaSource extends BasePushSource {
           record.getHeader().setAttribute(HeaderAttributeConstants.TOPIC, topic);
           record.getHeader().setAttribute(HeaderAttributeConstants.PARTITION, String.valueOf(partition));
           record.getHeader().setAttribute(HeaderAttributeConstants.OFFSET, String.valueOf(offset));
+          record.getHeader().setAttribute(HeaderAttributeConstants.KAFKA_TIMESTAMP_TYPE, timestampType);
+          record.getHeader().setAttribute(HeaderAttributeConstants.KAFKA_TIMESTAMP, String.valueOf(timestamp));
 
           records.add(record);
           record = parser.parse();
